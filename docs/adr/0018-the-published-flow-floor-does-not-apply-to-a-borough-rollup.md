@@ -20,3 +20,7 @@ The user set this on the requirement: asked whether the borough table should car
 - A borough table's totals are the star's billable population over trips whose pickup and dropoff zones both resolve, where `agg_od_flow_matrix`'s totals are a subset. The two surfaces are not interchangeable, and each states its own population.
 - A borough pair with no billable trips in a month has no row; the grid is not zero-filled.
 - The floor stays defined for published zone pairs only. A future surface at a coarser geography decides its own population rather than inheriting 25.
+
+## Affected designs
+
+- [`models/agg/agg_borough_flow_monthly.md`](../design/models/agg/agg_borough_flow_monthly.md)
