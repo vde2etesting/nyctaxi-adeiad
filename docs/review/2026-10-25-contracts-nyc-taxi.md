@@ -723,3 +723,4 @@ whether the model should state it as separate `unique` properties instead.
 - A corrupt catalog tracebacks with empty stdout instead of reporting `relations/*`.
 - `data-contract`'s "the enforced contract proves it at the build" is true for a dbt model only; 30 of 93 relations are seeds or dlt-loaded.
 - A single-column `unique_keys` entry is skipped although ODCS can express it as `unique: true`.
+- `odcs.py generate` picks a column's dbt description by column *name*, not by the logical source's `column_map`: on `agg.agg_borough_flow_monthly` it wrote the star's `trip_count` text ("Trips, billable or not.") over the column the source binds to `billable_trip_count`, so that column's description is a `{{ doc() }}` pointer, which `generate` leaves alone.

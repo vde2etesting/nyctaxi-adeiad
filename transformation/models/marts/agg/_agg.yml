@@ -550,26 +550,46 @@ models:
       boroughs and flagged per side (ADR 0012). cross_borough_trip_share is
       computed per origin borough and month over these rows, with its numerator
       and denominator published beside it.
+    contract: {enforced: true}
     columns:
       - name: month_start_date
         description: "First day of the pickup month; the same date the dim_date spine carries."
+        data_type: DATE
+        data_tests: [not_null]
       - name: origin_borough
         description: "Borough of the pickup zone; 'Unknown' and 'N/A' are kept as boroughs (ADR 0012)."
+        data_type: VARCHAR
+        data_tests: [not_null]
       - name: dest_borough
         description: "Borough of the dropoff zone; 'Unknown' and 'N/A' are kept as boroughs (ADR 0012)."
+        data_type: VARCHAR
+        data_tests: [not_null]
       - name: origin_is_unresolved_borough
         description: "True when the pickup zone's borough is 'Unknown' or 'N/A'."
+        data_type: BOOLEAN
       - name: dest_is_unresolved_borough
         description: "True when the dropoff zone's borough is 'Unknown' or 'N/A'."
+        data_type: BOOLEAN
       - name: is_intra_borough
         description: "True when the pickup and dropoff boroughs are the same, so the pair does not cross a borough line."
+        data_type: BOOLEAN
       - name: trip_count
-        description: "Billable trips from origin_borough to dest_borough in the month. No minimum: a pair with one such trip is published as readily as a pair with thousands (ADR 0018)."
+        description: '{{ doc("borough_flow_trip_count") }}'
+        data_type: BIGINT
+        data_tests: [not_null]
       - name: total_revenue
         description: "Sum of total_amount over the pair's billable trips in the month."
+        data_type: DOUBLE
+        data_tests: [not_null]
       - name: origin_trip_count
         description: "Every billable trip that started in origin_borough in the month, whatever its destination; the share's denominator, and the sum of the origin borough's rows for that month."
+        data_type: BIGINT
+        data_tests: [not_null]
       - name: origin_cross_borough_trip_count
         description: "Billable trips that started in origin_borough in the month and ended in a different borough; the share's numerator."
+        data_type: BIGINT
+        data_tests: [not_null]
       - name: cross_borough_trip_share
         description: "Share of origin_borough's billable trips in the month that ended in a different borough: origin_cross_borough_trip_count / origin_trip_count. The same value on every row of the origin and month."
+        data_type: DOUBLE
+        data_tests: [not_null]

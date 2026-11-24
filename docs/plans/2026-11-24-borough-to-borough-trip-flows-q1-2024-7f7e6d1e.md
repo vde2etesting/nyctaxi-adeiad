@@ -53,17 +53,17 @@
 
 **Requirements:** `R-08` · **Design:** `docs/design/models/agg/agg_borough_flow_monthly.md` · **Skill:** `semantic-model`, `data-contract` (activation), `ontology`, `validating-semantic-model`, `validating-ontology` · **Depends on:** Task 1
 
-- [ ] Add to `logical-model/nyc_taxi_analytics.ossie.yaml` through `semantic-model`: aggregate logical source `trips.LTS10_borough_month_flow` on the existing `trips` dataset — `source: agg.agg_borough_flow_monthly`, `primary_key` the three grain columns, `content_levels` built from the model's `GROUP BY` (date at its month level, pickup zone at its borough level keyed `origin_borough`, dropoff zone at its borough level keyed `dest_borough`), `content_filter` from its `WHERE`, and a `column_map` binding `trip_count` to `billable_trip_count` and `total_revenue` to `billable_revenue`, with the refusal of the share and its two counts recorded in that source's `note` per `D-13`. No new dataset and no new metric.
-- [ ] Set `contracts/agg/agg_borough_flow_monthly.odcs.yaml` to `status: active`, run `python3 .agents/skills/data-contract/scripts/odcs.py generate`, then `check` and `diff origin/main`; expect exit 0 from each.
-- [ ] Run `python3 .agents/skills/semantic-model/scripts/ossie.py generate-tests logical-model/ transformation/tests`; expect it rewrites the `assert_semantic_*.sql` files and reports `0 stale`.
-- [ ] Run `cd transformation && dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'`; expect PASS with the enforced contract now in place.
-- [ ] Run `cd transformation && dbt test --select agg_borough_flow_monthly,test_type:unit --target dev` and `dbt test --select assert_semantic_content_holds assert_semantic_level_keys_hold assert_semantic_levels_hold --target dev`; expect PASS on the unit test and on every `trips.LTS10_borough_month_flow` row, with only the pre-existing `LTS5_weather_borough_daily` level-key warning.
-- [ ] Run `python3 .agents/skills/semantic-model/scripts/ossie.py validate logical-model/`, then `coverage logical-model/ transformation/models/marts/core transformation/models/marts/agg transformation/models/marts/finance transformation/models/marts/ops --exclude agg.agg_od_flow_matrix --exclude finance.mart_revenue_component_bridge --exclude core.dim_fare_regime`, then `suppliers logical-model/`, then `notes logical-model/ transformation/tests docs/adr`, then `generate-tests logical-model/ transformation/tests --check`; expect exit 0 from each.
-- [ ] Load `validating-semantic-model` and record its report; expect no open finding.
-- [ ] Run `python3 .agents/skills/semantic-model/scripts/ossie.py validate ontology/`, `refs ontology/ logical-model/` and `glossary ontology/ CONTEXT.md`; expect exit 0 from each.
-- [ ] Load `validating-ontology` and record its report; expect a pass with the mapping unchanged, since the aggregate carries no concept identity.
-- [ ] Run `cd transformation && dbt docs generate --target dev`, then `python3 .agents/skills/data-contract/scripts/odcs.py check --relations --catalog transformation/target/catalog.json` and `python3 .agents/skills/data-contract/scripts/odcs.py profile --relation agg.agg_borough_flow_monthly`; expect exit 0 from each.
-- [ ] Commit and push the Ossie document, regenerated tests, activated contract, generated dbt keys and `_agg.yml`.
+- [x] Add to `logical-model/nyc_taxi_analytics.ossie.yaml` through `semantic-model`: aggregate logical source `trips.LTS10_borough_month_flow` on the existing `trips` dataset — `source: agg.agg_borough_flow_monthly`, `primary_key` the three grain columns, `content_levels` built from the model's `GROUP BY` (date at its month level, pickup zone at its borough level keyed `origin_borough`, dropoff zone at its borough level keyed `dest_borough`), `content_filter` from its `WHERE`, and a `column_map` binding `trip_count` to `billable_trip_count` and `total_revenue` to `billable_revenue`, with the refusal of the share and its two counts recorded in that source's `note` per `D-13`. No new dataset and no new metric.
+- [x] Set `contracts/agg/agg_borough_flow_monthly.odcs.yaml` to `status: active`, run `python3 .agents/skills/data-contract/scripts/odcs.py generate`, then `check` and `diff origin/main`; expect exit 0 from each.
+- [x] Run `python3 .agents/skills/semantic-model/scripts/ossie.py generate-tests logical-model/ transformation/tests`; expect it rewrites the `assert_semantic_*.sql` files and reports `0 stale`.
+- [x] Run `cd transformation && dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'`; expect PASS with the enforced contract now in place.
+- [x] Run `cd transformation && dbt test --select agg_borough_flow_monthly,test_type:unit --target dev` and `dbt test --select assert_semantic_content_holds assert_semantic_level_keys_hold assert_semantic_levels_hold --target dev`; expect PASS on the unit test and on every `trips.LTS10_borough_month_flow` row, with only the pre-existing `LTS5_weather_borough_daily` level-key warning.
+- [x] Run `python3 .agents/skills/semantic-model/scripts/ossie.py validate logical-model/`, then `coverage logical-model/ transformation/models/marts/core transformation/models/marts/agg transformation/models/marts/finance transformation/models/marts/ops --exclude agg.agg_od_flow_matrix --exclude finance.mart_revenue_component_bridge --exclude core.dim_fare_regime`, then `suppliers logical-model/`, then `notes logical-model/ transformation/tests docs/adr`, then `generate-tests logical-model/ transformation/tests --check`; expect exit 0 from each.
+- [x] Load `validating-semantic-model` and record its report; expect no open finding.
+- [x] Run `python3 .agents/skills/semantic-model/scripts/ossie.py validate ontology/`, `refs ontology/ logical-model/` and `glossary ontology/ CONTEXT.md`; expect exit 0 from each.
+- [x] Load `validating-ontology` and record its report; expect a pass with the mapping unchanged, since the aggregate carries no concept identity.
+- [x] Run `cd transformation && dbt docs generate --target dev`, then `python3 .agents/skills/data-contract/scripts/odcs.py check --relations --catalog transformation/target/catalog.json` and `python3 .agents/skills/data-contract/scripts/odcs.py profile --relation agg.agg_borough_flow_monthly`; expect exit 0 from each.
+- [x] Commit and push the Ossie document, regenerated tests, activated contract, generated dbt keys and `_agg.yml`.
 
 ## Execution evidence
 
@@ -101,3 +101,37 @@
 
 **Coverage gap:** none known. The contract is `proposed`, so `generate` wrote no dbt enforcement keys yet by design; Task 2 activates it.
 
+
+### Task 2 — logical source, contract activation, ontology
+
+**Artifacts.** `logical-model/nyc_taxi_analytics.ossie.yaml` (`trips.LTS10_borough_month_flow` on the existing `trips` dataset, no new dataset, no new metric — `D-13`), `contracts/agg/agg_borough_flow_monthly.odcs.yaml` (`status: active`, version 1.0.0), the generated keys in `transformation/models/marts/agg/_agg.yml` (`contract: {enforced: true}`, `data_type` on every column, `not_null` on the five required ones), the `{% docs borough_flow_trip_count %}` block in `transformation/models/docs.md`, the regenerated `transformation/tests/assert_semantic_content_holds.sql` and `assert_semantic_levels_hold.sql`, and the design amendment `D-13` with its Verification discovery entries.
+
+**Design change during execution.** `D-11`'s share metric could not be published honestly (`D-13`); the amendment was approved at 2026-11-24T05:17:55Z and Task 2 redrafted before this work.
+
+| Command | Exit | Result |
+| --- | --- | --- |
+| `python3 .agents/skills/semantic-model/scripts/ossie.py validate logical-model/` | 0 | 2 files, 0 errors, 1 known `zone_poi_to_zone` warning. |
+| `... ossie.py coverage logical-model/ <the four boundary roots> --exclude agg.agg_od_flow_matrix --exclude finance.mart_revenue_component_bridge --exclude core.dim_fare_regime` | 0 | 35 models on disk, 32 named, 0 coverage errors, 3 `coverage/excluded` infos. |
+| `... ossie.py suppliers logical-model/` | 0 | `[]` — 0 unsupplied items. |
+| `... ossie.py notes logical-model/ transformation/tests docs/adr` | 0 | 0 dangling pointers, 0 unchecked directors. |
+| `... ossie.py generate-tests logical-model/ transformation/tests --check` | 0 | 3 generated tests, 0 stale. |
+| `... ossie.py bindings logical-model/ transformation/target/manifest.json` | 0 | 64 models with SQL, 0 errors (2 `bindings/unproven` warnings on LTS sources whose bindings the content test holds on data). |
+| `... ossie.py columns logical-model/ transformation/target/catalog.json` | 0 | 88 relations, 0 errors, 15 pre-existing same-class `datatype-mismatch` warnings, none on this relation. |
+| `cd transformation && dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev` | 0 | `PASS=15 WARN=1 ERROR=0 SKIP=0` — the enforced contract's `not_null` tests included; the one warning is the pre-existing `LTS5_weather_borough_daily` level-key warning. |
+| `cd transformation && dbt test --select agg_borough_flow_monthly,test_type:unit --target dev` | 0 | `PASS=1` — `borough_flow_counts_share_and_flags`. |
+| `... ossie.py generate-tests` (write mode) | 0 | Rewrote the content and level tests; `assert_semantic_content_holds` then **PASS** against the built relation. |
+| `python3 .agents/skills/data-contract/scripts/odcs.py generate` | 0 | Wrote the dbt contract keys; no other contract moved. |
+| `... odcs.py check` | 0 | 34 findings, all pre-existing `contract/active-unbuilt` on relations this sandbox did not build, plus 3 `boundary/excluded` infos; nothing on `agg.agg_borough_flow_monthly`. |
+| `... odcs.py diff origin/main` | 0 | `[]` — version 1.0.0 is the version the change needs. |
+| `... odcs.py check --relations --catalog transformation/target/catalog.json` | 0 | 9 findings, none on this relation. |
+| `runtime wrapper: ... odcs.py profile --relation agg.agg_borough_flow_monthly --catalog "$VD_EPHM_DUCKDB_LOCAL_PATH"` | 0 | `[]` — the grain is unique, no `required` property is null, no rule violated on the built rows. |
+| `cd transformation && dbt docs generate --target dev` | 0 | `transformation/target/catalog.json` (166,482 bytes). |
+| `... ossie.py validate ontology/` | 0 | 3 files, 0 errors, 0 warnings. |
+| `... ossie.py refs ontology/ logical-model/` | 0 | 2 mappings, 0 errors, 2 pre-existing `refs/identity-not-natural-key` warnings. |
+| `... ossie.py glossary ontology/ CONTEXT.md` | 0 | 0 entity types without a term; 25 terms without a concept and 15 value types without a term, all pre-existing and adjudicated in the ontology review. |
+
+**`validating-semantic-model` verdict: passes.** Items 1–11 read against `agg_borough_flow_monthly.sql`: `trip_count` and `total_revenue` are the only bindings and both are columns the `SELECT` produces (item 1, `columns` clean); `trip_count` counts in-window billable rows with both zones resolved, the same population and aggregation as `billable_trip_count` (`SUM(CASE WHEN trips.is_billable THEN 1 ELSE 0 END)`), and `total_revenue` sums `f.total_amount` over rows the `WHERE` already restricts to `is_billable`, which is `billable_revenue`'s expression (item 2, `assert_semantic_content_holds` PASS); the share binds to no column, so no rate is averaged (item 3); the source's population is the metric's population plus the reporting window, which `content_filter` states (item 4); no metric filter is declared, so nothing to restate (item 5); `content_filter` restates the `WHERE` and what the two inner `dim_zone` joins drop, and `content_levels` match the `GROUP BY` with the vias the joins use (item 6); the generated tests hold on data (item 7); no semi-additive measure (item 8); the refusals are in the source's `note` (item 9); `coverage` is clean (item 10). Open findings: none. Two pre-existing items are recorded as data findings, not caused here: the `LTS5_weather_borough_daily` borough key warning, and the 15 same-class `datatype-mismatch` warnings.
+
+**`validating-ontology` verdict: passes, mapping unchanged.** An aggregate is a rollup, so it carries metrics and no concept (`references/classification.md`); `agg_borough_flow_monthly` exposes no trip key and no zone key, so no concept identity is reached and the exemption is recorded in the design record's `## Logical Model`. Coverage: every boundary table keeps its classification, and this one is exempt as an aggregate.
+
+**Tool gap, queued.** `generate` chose a column's description by column name rather than by the logical source's `column_map`, so it wrote the star's `trip_count` text over the column bound to `billable_trip_count`. The contract's text is kept on the table through a `{{ doc() }}` pointer, which `generate` leaves alone; the behaviour is queued in `docs/review/2026-10-25-contracts-nyc-taxi.md`.
