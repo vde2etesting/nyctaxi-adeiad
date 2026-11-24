@@ -67,6 +67,8 @@ The dbt commands ran in `transformation/` with `--target dev` through the runtim
 | Model build at ship | `dbt build --select agg_borough_flow_monthly --target dev` | 0 | pass — `PASS=16 WARN=1 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=17`; the warning is the known `assert_semantic_levels_hold` sentinel row, unchanged by this intent |
 | Sandbox destination at ship | `python3 "$SKILL_DIR/../../scripts/assert_dbt_destination.py"` | 0 | pass — `DESTINATION_OK: 1 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-7f7e6d1e` |
 | Domain sweep | `CONTEXT.md` and `docs/adr/` read against the design record's `D-01`–`D-13` and the Requirement's terms | - | pass — `domain sweep: nothing new`: `Cross-borough trip share` is glossed in `CONTEXT.md` and ADR 0018 records the no-floor decision, both committed earlier in this change |
+| Push | `git push -u origin HEAD` | 0 | pass — `To https://github.com/vde2etesting/nyctaxi-adeiad.git`, `548d317..97d585c  HEAD -> intent/new-intent-7f7e6d1e`; the approval commit `e21fcd1` pushed the same way |
+| Publication | `gh pr list --head intent/new-intent-7f7e6d1e --state open --json number,url,headRefName,baseRefName`, `gh pr create --head intent/new-intent-7f7e6d1e --title "feat: add the monthly borough-to-borough flow aggregate" --body-file .agents_tmp/pr-body.md`, `gh pr view 2 --json number,url,state,headRefName,baseRefName`, each with `-R vde2etesting/nyctaxi-adeiad` because no default remote is set in this workspace | 0 | pass — `https://github.com/vde2etesting/nyctaxi-adeiad/pull/2` reads `state: OPEN`, `headRefName: intent/new-intent-7f7e6d1e`, `baseRefName: main`, the resolved target `1184020` |
 
 ## Discovery
 
