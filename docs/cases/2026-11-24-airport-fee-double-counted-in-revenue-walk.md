@@ -67,3 +67,5 @@ Proposed change:
 - `test-map.json`: list the new test under the finance module.
 
 ## Approvals
+- 2026-11-24T05:44:55Z — design approved — "approve" — fa73e5b
+- 2026-11-24T05:44:55Z — breaking contract approved — "approve" — fa73e5b — promised shape: `fct_trip.fare_residual` restated to total minus every modelled component including the airport fee; columns and types unchanged, a full refresh of the published `fct_trip` required to restate existing rows
