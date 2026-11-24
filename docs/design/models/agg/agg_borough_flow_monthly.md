@@ -56,7 +56,7 @@ documents:
       changed: []
       retired: []
     logical_sources:
-      added: [borough_flows]
+      added: [LTS10_borough_month_flow]
       changed: []
       retired: []
 ontology:
@@ -73,3 +73,4 @@ ontology:
 
 - 2026-11-24 — borough-flow — design record written — D-01 to D-12 — terms: added Cross-borough trip share
 - 2026-11-24 — borough-flow — amended during execution: the share is refused as a semantic-layer metric and the relation supplies the two additive measures only, correcting the `## Logical Model` dataset and metric lines — D-13 — terms: none new
+- 2026-11-24 — borough-flow — the `## Logical Model` logical-source line now names the handle the document carries, `LTS10_borough_month_flow`, instead of the description `borough_flows`, which no document names — D-13 — terms: none new
