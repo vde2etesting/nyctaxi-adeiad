@@ -1,22 +1,20 @@
 -- Daily revenue by pickup zone.
 --
--- The billable rule (ADR 0003) is applied here, in gold, and nowhere upstream,
--- so data-quality work can still see the rows this excludes.
+-- The billable verdict (ADR 0018) is applied in int_trip_zone_daily, above both
+-- daily zone reports, so the rows this excludes stay visible there to
+-- data-quality work. Only the billable columns are published here.
 select
-    f.pickup_date as trip_date,
+    d.pickup_date as trip_date,
     z.zone_natural_key as pickup_location_id,
     z.borough_name as borough,
     z.zone_name,
     z.reporting_region,
-    count(*) as trip_count,
-    sum(f.fare_amount) as fare_revenue,
-    sum(f.tip_amount) as tip_revenue,
-    sum(f.total_surcharges) as surcharge_revenue,
-    sum(f.tolls_amount) as toll_revenue,
-    sum(f.total_amount) as total_revenue
-from {{ ref('fct_trip') }} f
-join {{ ref('dim_zone') }} z on f.pickup_zone_key = z.zone_key
-where
-    {{ in_report_window('f.pickup_datetime') }}
-    and f.is_billable
-group by 1, 2, 3, 4, 5
+    d.billable_trip_count as trip_count,
+    d.billable_fare_revenue as fare_revenue,
+    d.billable_tip_revenue as tip_revenue,
+    d.billable_surcharge_revenue as surcharge_revenue,
+    d.billable_toll_revenue as toll_revenue,
+    d.billable_total_revenue as total_revenue
+from {{ ref('int_trip_zone_daily') }} d
+join {{ ref('dim_zone') }} z on d.pickup_zone_key = z.zone_key
+where d.billable_trip_count > 0
