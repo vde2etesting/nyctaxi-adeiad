@@ -34,14 +34,28 @@
 
 **Requirements:** `R-01`, `R-05` · **Design:** `docs/design/models/intermediate/int_trip_zone_daily.md` · **Skill:** `generating-dbt-model` · **Depends on:** none
 
-- [ ] Author `transformation/models/intermediate/int_trip_zone_daily.sql`: `fct_trip` filtered by `{{ in_report_window('f.pickup_datetime') }}`, grouped by `pickup_date_key`, `pickup_date` and `pickup_zone_key`, carrying `trip_count`, `total_miles`, `total_revenue`, `attributed_driver_count` over every trip beside `billable_trip_count`, `billable_fare_revenue`, `billable_tip_revenue`, `billable_surcharge_revenue`, `billable_toll_revenue` and `billable_total_revenue` over `is_billable` trips only.
-- [ ] Add its entry to `transformation/models/intermediate/_intermediate.yml`: description, every column with `data_type`, `not_null` on `pickup_date`, `pickup_zone_key`, `trip_count`, and `relationships` on `pickup_zone_key` to `dim_zone.zone_key`; update the stale `int_trip_quality_flags` description ("ADR 0003 puts the billable rule in gold") to name ADR 0018.
-- [ ] Add `transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql`, returning rows when `(pickup_date, pickup_zone_key)` repeats.
-- [ ] Add one unit test to `transformation/models/intermediate/_unit_tests.yml`, `trip_zone_daily_splits_billable_and_all_trip_populations`: two zone-days, one trip with a negative total, expect the billable columns to exclude it and the all-trip columns to include it, with `overrides: {vars: {report_start: '2024-01-01', report_end: '2024-04-01'}}` because the model reads both vars.
-- [ ] Add `transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql` to `test-map.json` under `modules.intermediate.data`; run `python3 -m pytest tests/test_maps.py -q`, expect 2 passed.
-- [ ] Run `cd transformation && dbt build --select int_trip_zone_daily`; expect the model, its data tests and its unit test to pass.
-- [ ] Run the `R-05` acceptance: on `target: "ephemeral"`, `select sum(billable_trip_count) as trips, round(sum(billable_total_revenue), 2) as revenue from intermediate.int_trip_zone_daily`; expect `9604511` and `263480834.99`.
-- [ ] Commit and push `transformation/models/intermediate/int_trip_zone_daily.sql`, `transformation/models/intermediate/_intermediate.yml`, `transformation/models/intermediate/_unit_tests.yml`, `transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql` and `test-map.json`.
+- [x] Author `transformation/models/intermediate/int_trip_zone_daily.sql`: `fct_trip` filtered by `{{ in_report_window('f.pickup_datetime') }}`, grouped by `pickup_date_key`, `pickup_date` and `pickup_zone_key`, carrying `trip_count`, `total_miles`, `total_revenue`, `attributed_driver_count` over every trip beside `billable_trip_count`, `billable_fare_revenue`, `billable_tip_revenue`, `billable_surcharge_revenue`, `billable_toll_revenue` and `billable_total_revenue` over `is_billable` trips only.
+- [x] Add its entry to `transformation/models/intermediate/_intermediate.yml`: description, every column with `data_type`, `not_null` on `pickup_date`, `pickup_zone_key`, `trip_count`, and `relationships` on `pickup_zone_key` to `dim_zone.zone_key`; update the stale `int_trip_quality_flags` description ("ADR 0003 puts the billable rule in gold") to name ADR 0018.
+- [x] Add `transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql`, returning rows when `(pickup_date, pickup_zone_key)` repeats.
+- [x] Add one unit test to `transformation/models/intermediate/_unit_tests.yml`, `trip_zone_daily_splits_billable_and_all_trip_populations`: two zone-days, one trip with a negative total, expect the billable columns to exclude it and the all-trip columns to include it, with `overrides: {vars: {report_start: '2024-01-01', report_end: '2024-04-01'}}` because the model reads both vars.
+- [x] Add `transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql` to `test-map.json` under `modules.intermediate.data`; run `python3 -m pytest tests/test_maps.py -q`, expect 2 passed.
+- [x] Run `cd transformation && dbt build --select int_trip_zone_daily`; expect the model, its data tests and its unit test to pass.
+- [x] Run the `R-05` acceptance: on `target: "ephemeral"`, `select sum(billable_trip_count) as trips, round(sum(billable_total_revenue), 2) as revenue from intermediate.int_trip_zone_daily`; expect `9604511` and `263480834.99`.
+- [x] Commit and push `transformation/models/intermediate/int_trip_zone_daily.sql`, `transformation/models/intermediate/_intermediate.yml`, `transformation/models/intermediate/_unit_tests.yml`, `transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql` and `test-map.json`.
+
+## Execution evidence (Task 1)
+
+- Task 1: `cd transformation && dbt deps` — exit 0 — `Installed from version 1.4.1 / Up to date!`
+- Task 1: `dbt compile --select int_trip_zone_daily --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` — exit 0 — resolved `intermediate.int_trip_zone_daily`, 13 columns, materialized `table`; no defer (the dbt card publishes no production manifest).
+- Task 1: `dbt build --select int_trip_zone_daily --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` — exit 0 — `PASS=7 WARN=0 ERROR=0 SKIP=0 TOTAL=7` (1 table model, 5 data tests, 1 unit test) — `transformation/models/intermediate/int_trip_zone_daily.sql` — sha256:8dd74eb1766b22ffabb969c39f4ff561ecbf9c9168262206f1e8e7be9f26fbb3
+- Task 1: `python /data/default-plugins/vibedata-data-engineering/0.148.28/scripts/assert_dbt_destination.py` — exit 0 — `DESTINATION_OK: 1 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-290100c7`
+- Task 1: `python /data/default-plugins/vibedata-data-engineering/0.148.28/scripts/ephemeral_workspace_marker.py init` — exit 0 — `{"status": "created"}`
+- Task 1: `lakehouse_query target=ephemeral: select sum(billable_trip_count) as trips, round(sum(billable_total_revenue), 2) as revenue, sum(trip_count) as all_trips, round(sum(total_revenue), 2) as all_revenue, count(*) as rows from intermediate.int_trip_zone_daily` — 1 row — billable `9604511` trips / `263480834.99`; all-trip `9722336` / `260487920.62`; `20771` rows — `R-05` met on the billable population.
+- Task 1: `dbt docs generate --static --target dev` — exit 0 — catalog built; `static_index.html` published to `/data/ephm_dbt_docs`
+- Task 1: `sqlfluff lint models/intermediate/int_trip_zone_daily.sql tests/assert_trip_zone_daily_one_row_per_grain.sql` — exit 0
+- Task 1: `python3 -m pytest tests/test_maps.py tests/test_adr_links.py -q` — exit 0 — `32 passed`
+- Task 1: profiling — every upstream relation recorded `Ready`: `core.fct_trip` (9,722,336 window rows, no null zone key or measure), `core.dim_zone` (272 rows, 272 distinct `zone_key`), both read on `target: "domain"` in the Verification's `## Discovery`; nothing unprofiled.
+- Task 1: grain test `assert_trip_zone_daily_one_row_per_grain` PASS over 20,771 rows — `transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql` — sha256:a1b00c01f4c5b57f0525b62c26dfe4a7983e178c330aea42a9d142072d51b6b7
 
 ### Task 2: `agg_trip_zone_daily` reads the shared computation
 

@@ -236,10 +236,58 @@ models:
         data_type: BOOLEAN
       - name: settlement_class
         data_type: VARCHAR
+  - name: int_trip_zone_daily
+    description: >
+      The one daily-zone computation, in one row per pickup zone and trip date:
+      every trip in the reporting window beside the billable population of the
+      same trips, so the finance revenue report and the operations daily-zone
+      figure read one build instead of aggregating fct_trip each. A zone-day
+      with no billable trip keeps its all-trip columns and carries null billable
+      measures. The billable rule is ADR 0018.
+    contract: {enforced: true}
+    columns:
+      - name: pickup_date_key
+        data_type: INTEGER
+      - name: pickup_date
+        data_type: DATE
+        data_tests: [not_null]
+      - name: pickup_zone_key
+        data_type: VARCHAR
+        data_tests:
+          - not_null
+          - {relationships: {arguments: {field: zone_key, to: ref('dim_zone')}}}
+      - name: trip_count
+        data_type: BIGINT
+        data_tests: [not_null]
+        description: Trips, billable or not.
+      - name: total_miles
+        data_type: DOUBLE
+        description: Sum of trip_distance over every trip, billable or not.
+      - name: total_revenue
+        data_type: DOUBLE
+        description: Sum of total_amount over every trip, billable or not; refunds reduce it.
+      - name: attributed_driver_count
+        data_type: BIGINT
+        description: Distinct fleet drivers across every trip in the zone-day, billable or not.
+      - name: billable_trip_count
+        data_type: BIGINT
+        description: Trips whose total amount is positive.
+      - name: billable_fare_revenue
+        data_type: DOUBLE
+      - name: billable_tip_revenue
+        data_type: DOUBLE
+      - name: billable_surcharge_revenue
+        data_type: DOUBLE
+        description: Sum of total_surcharges, the pass-through extras, over the billable trips.
+      - name: billable_toll_revenue
+        data_type: DOUBLE
+      - name: billable_total_revenue
+        data_type: DOUBLE
   - name: int_trip_quality_flags
     description: >
       Every quality verdict for a trip, in one row. Nothing is deleted -- ADR
-      0003 puts the billable rule in gold, and an excluded trip still happened.
+      0018 keeps the billable verdict where it is applied above this model, and
+      an excluded trip still happened.
     contract: {enforced: true}
     columns:
       - name: trip_key

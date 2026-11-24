@@ -102,3 +102,24 @@ unit_tests:
       rows:
         - {service_type: yellow, trip_key: 5b7f4eadad9b855627f228222a657f5f}
         - {service_type: green, trip_key: 5eeab1b23109fc6f024928c01a5fbff3}
+
+  # --- int_trip_zone_daily: both populations in one row -----------------------
+  - name: trip_zone_daily_splits_billable_and_all_trip_populations
+    description: A zone-day with a refund keeps it in the all-trip columns and leaves it out of the billable ones; a zone-day with no billable trip carries null billable measures.
+    model: int_trip_zone_daily
+    overrides:
+      vars:
+        report_start: '2024-01-01'
+        report_end: '2024-04-01'
+    given:
+      - input: ref('fct_trip')
+        rows:
+          - {pickup_datetime: '2024-01-02 10:00:00', pickup_date_key: 20240102, pickup_date: '2024-01-02', pickup_zone_key: Z1, trip_distance: 2.0, total_amount: 10.0, fare_amount: 8.0, tip_amount: 1.0, total_surcharges: 1.0, tolls_amount: 0.0, driver_key: 1, is_billable: true}
+          - {pickup_datetime: '2024-01-02 11:00:00', pickup_date_key: 20240102, pickup_date: '2024-01-02', pickup_zone_key: Z1, trip_distance: 3.0, total_amount: -5.0, fare_amount: -4.0, tip_amount: 0.0, total_surcharges: -1.0, tolls_amount: 0.0, driver_key: 1, is_billable: false}
+          - {pickup_datetime: '2024-01-03 09:00:00', pickup_date_key: 20240103, pickup_date: '2024-01-03', pickup_zone_key: Z2, trip_distance: 1.0, total_amount: 20.0, fare_amount: 20.0, tip_amount: 0.0, total_surcharges: 0.0, tolls_amount: 0.0, driver_key: 2, is_billable: true}
+          - {pickup_datetime: '2024-01-04 09:00:00', pickup_date_key: 20240104, pickup_date: '2024-01-04', pickup_zone_key: Z3, trip_distance: 0.5, total_amount: -2.0, fare_amount: -2.0, tip_amount: 0.0, total_surcharges: 0.0, tolls_amount: 0.0, driver_key: 3, is_billable: false}
+    expect:
+      rows:
+        - {pickup_date: '2024-01-02', pickup_zone_key: Z1, trip_count: 2, total_miles: 5.0, total_revenue: 5.0, attributed_driver_count: 1, billable_trip_count: 1, billable_fare_revenue: 8.0, billable_tip_revenue: 1.0, billable_surcharge_revenue: 1.0, billable_toll_revenue: 0.0, billable_total_revenue: 10.0}
+        - {pickup_date: '2024-01-03', pickup_zone_key: Z2, trip_count: 1, total_miles: 1.0, total_revenue: 20.0, attributed_driver_count: 1, billable_trip_count: 1, billable_fare_revenue: 20.0, billable_tip_revenue: 0.0, billable_surcharge_revenue: 0.0, billable_toll_revenue: 0.0, billable_total_revenue: 20.0}
+        - {pickup_date: '2024-01-04', pickup_zone_key: Z3, trip_count: 1, total_miles: 0.5, total_revenue: -2.0, attributed_driver_count: 1, billable_trip_count: 0, billable_fare_revenue: null, billable_tip_revenue: null, billable_surcharge_revenue: null, billable_toll_revenue: null, billable_total_revenue: null}

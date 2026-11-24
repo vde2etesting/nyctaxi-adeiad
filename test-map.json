@@ -50,7 +50,8 @@
       "data": [
         "transformation/tests/assert_no_negative_status_intervals.sql",
         "transformation/tests/assert_airport_fee_only_on_yellow.sql",
-        "transformation/tests/assert_enrichment_rejoin_matches_every_trip.sql"
+        "transformation/tests/assert_enrichment_rejoin_matches_every_trip.sql",
+        "transformation/tests/assert_trip_zone_daily_one_row_per_grain.sql"
       ],
       "selectors": {
         "data": "path:models/intermediate",
