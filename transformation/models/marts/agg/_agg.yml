@@ -539,3 +539,37 @@ models:
         data_type: DOUBLE
       - name: zone_occupancy_rate
         data_type: DOUBLE
+  - name: agg_borough_flow_monthly
+    description: >
+      Monthly borough-to-borough flow: the trip star rolled up to the pickup
+      borough, the dropoff borough and the pickup month, so how much traffic
+      crosses borough lines is one group-by away. Billable trips only, in the
+      reporting window (ADR 0003). No trip-count floor -- every borough pair with
+      at least one such trip in the month is published, and a pair with none has
+      no row rather than a zero (ADR 0018). 'Unknown' and 'N/A' are kept as
+      boroughs and flagged per side (ADR 0012). cross_borough_trip_share is
+      computed per origin borough and month over these rows, with its numerator
+      and denominator published beside it.
+    columns:
+      - name: month_start_date
+        description: "First day of the pickup month; the same date the dim_date spine carries."
+      - name: origin_borough
+        description: "Borough of the pickup zone; 'Unknown' and 'N/A' are kept as boroughs (ADR 0012)."
+      - name: dest_borough
+        description: "Borough of the dropoff zone; 'Unknown' and 'N/A' are kept as boroughs (ADR 0012)."
+      - name: origin_is_unresolved_borough
+        description: "True when the pickup zone's borough is 'Unknown' or 'N/A'."
+      - name: dest_is_unresolved_borough
+        description: "True when the dropoff zone's borough is 'Unknown' or 'N/A'."
+      - name: is_intra_borough
+        description: "True when the pickup and dropoff boroughs are the same, so the pair does not cross a borough line."
+      - name: trip_count
+        description: "Billable trips from origin_borough to dest_borough in the month. No minimum: a pair with one such trip is published as readily as a pair with thousands (ADR 0018)."
+      - name: total_revenue
+        description: "Sum of total_amount over the pair's billable trips in the month."
+      - name: origin_trip_count
+        description: "Every billable trip that started in origin_borough in the month, whatever its destination; the share's denominator, and the sum of the origin borough's rows for that month."
+      - name: origin_cross_borough_trip_count
+        description: "Billable trips that started in origin_borough in the month and ended in a different borough; the share's numerator."
+      - name: cross_borough_trip_share
+        description: "Share of origin_borough's billable trips in the month that ended in a different borough: origin_cross_borough_trip_count / origin_trip_count. The same value on every row of the origin and month."

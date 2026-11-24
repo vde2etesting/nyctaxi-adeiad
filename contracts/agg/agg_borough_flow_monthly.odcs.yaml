@@ -1,0 +1,70 @@
+apiVersion: v3.2.0
+kind: DataContract
+id: 555e0c4c-56ca-4ff1-92fd-8f7902893072
+name: agg_borough_flow_monthly
+version: 1.0.0
+status: proposed
+servers:
+  - server: sample-nyctaxi-comp
+    type: duckdb
+    database: domain.duckdb
+    schema: agg
+schema:
+  - name: agg_borough_flow_monthly
+    dataGranularityDescription: "One row per pickup month, origin borough and destination borough that carried at least one billable trip. The eight-borough grid is not zero-filled: a pair with no trip in a month has no row (ADR 0018)."
+    properties:
+      - name: month_start_date
+        description: "First day of the pickup month; the same date the dim_date spine carries."
+        logicalType: date
+        physicalType: DATE
+        required: true
+        primaryKey: true
+      - name: origin_borough
+        description: "Borough of the pickup zone; 'Unknown' and 'N/A' are kept as boroughs (ADR 0012)."
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+        primaryKey: true
+      - name: dest_borough
+        description: "Borough of the dropoff zone; 'Unknown' and 'N/A' are kept as boroughs (ADR 0012)."
+        logicalType: string
+        physicalType: VARCHAR
+        required: true
+        primaryKey: true
+      - name: origin_is_unresolved_borough
+        description: "True when the pickup zone's borough is 'Unknown' or 'N/A'."
+        logicalType: boolean
+        physicalType: BOOLEAN
+      - name: dest_is_unresolved_borough
+        description: "True when the dropoff zone's borough is 'Unknown' or 'N/A'."
+        logicalType: boolean
+        physicalType: BOOLEAN
+      - name: is_intra_borough
+        description: "True when the pickup and dropoff boroughs are the same, so the pair does not cross a borough line."
+        logicalType: boolean
+        physicalType: BOOLEAN
+      - name: trip_count
+        description: "Billable trips from origin_borough to dest_borough in the month. No minimum: a pair with one such trip is published as readily as a pair with thousands (ADR 0018)."
+        logicalType: integer
+        physicalType: BIGINT
+        required: true
+      - name: total_revenue
+        description: "Sum of total_amount over the pair's billable trips in the month."
+        logicalType: number
+        physicalType: DOUBLE
+        required: true
+      - name: origin_trip_count
+        description: "Every billable trip that started in origin_borough in the month, whatever its destination; the share's denominator, and the sum of the origin borough's rows for that month."
+        logicalType: integer
+        physicalType: BIGINT
+        required: true
+      - name: origin_cross_borough_trip_count
+        description: "Billable trips that started in origin_borough in the month and ended in a different borough; the share's numerator."
+        logicalType: integer
+        physicalType: BIGINT
+        required: true
+      - name: cross_borough_trip_share
+        description: "Share of origin_borough's billable trips in the month that ended in a different borough: origin_cross_borough_trip_count / origin_trip_count. The same value on every row of the origin and month."
+        logicalType: number
+        physicalType: DOUBLE
+        required: true

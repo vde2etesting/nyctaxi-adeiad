@@ -31,23 +31,23 @@
 
 **Requirements:** `R-01`–`R-07` · **Design:** `docs/design/models/agg/agg_borough_flow_monthly.md` · **Skill:** `data-contract` (contract), `generating-dbt-model` (model) · **Depends on:** none
 
-- [ ] Author `contracts/agg/agg_borough_flow_monthly.odcs.yaml` through `data-contract`: `status: proposed`, version 1.0.0, grain statement `one row per pickup month, origin borough and destination borough`, properties `month_start_date` (date), `origin_borough` (string, required), `dest_borough` (string, required), `origin_is_unresolved_borough` (boolean), `dest_is_unresolved_borough` (boolean), `is_intra_borough` (boolean), `trip_count` (integer, required), `total_revenue` (number), `origin_trip_count` (integer, required), `origin_cross_borough_trip_count` (integer, required), `cross_borough_trip_share` (number, required), `primaryKey` on the three grain columns.
-- [ ] Author `transformation/models/marts/agg/agg_borough_flow_monthly.sql`: `fct_trip` joined to `dim_zone` as origin (`pickup_zone_key`) and as destination (`dropoff_zone_key`), `where in_report_window(f.pickup_datetime) and f.is_billable`, grouped by month and the two borough names; the two flags from `dim_zone.is_unresolved_zone`, `is_intra_borough` from the two borough names, and the origin-month window sums for `origin_trip_count`, `origin_cross_borough_trip_count` and `cross_borough_trip_share` (`safe_divide`); every column cast to its declared type. No `contract: {enforced: true}` in this task: `generate` writes it in Task 2.
-- [ ] Add the model entry to `transformation/models/marts/agg/_agg.yml` with a description stating grain, population (billable, in window, both zones resolved), the absence of a floor (ADR 0018) and the share's denominator, and a description on every column.
-- [ ] Add `transformation/models/marts/agg/_unit_tests.yml` with unit test `agg_borough_flow_monthly` over `fct_trip` and `dim_zone` fixtures (with `overrides: {vars: {report_start: '2024-01-01', report_end: '2024-04-01'}}`): a cross-borough pair, an intra-borough pair, an `Unknown` origin, a `N/A` destination and a pickup on the first and last day of a month, asserting each row's counts, flags and share.
-- [ ] Add `transformation/tests/assert_borough_flow_one_row_per_grain.sql`.
-- [ ] Add `transformation/tests/assert_borough_flow_publishes_every_pair.sql`: a full outer join between the table's (month, origin, destination) cells and the star's, reporting a missing pair, an extra pair or a row with `trip_count < 1`.
-- [ ] Add `transformation/tests/assert_borough_flow_share_holds.sql`: recompute the share from the table's own `origin_cross_borough_trip_count` and `origin_trip_count`, reporting a mismatch beyond 1e-9 and any origin-month whose rows disagree on the share.
-- [ ] Add `transformation/tests/assert_borough_flow_flags_unresolved_boroughs.sql`: report a row whose `origin_is_unresolved_borough` or `dest_is_unresolved_borough` disagrees with the borough name being `Unknown` or `N/A`.
-- [ ] Add `transformation/tests/assert_borough_flow_covers_every_trip.sql`: report a difference between the table's summed `trip_count` and the star's billable in-window trips with both zones resolved.
-- [ ] Add the five new singular tests to the `agg` `data` list in `test-map.json`.
-- [ ] Run `cd transformation && dbt deps`; expect exit 0.
-- [ ] Run `cd transformation && dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'`; expect PASS.
-- [ ] Run `cd transformation && dbt test --select agg_borough_flow_monthly,test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'`; expect PASS.
-- [ ] Run `python3 .agents/skills/data-contract/scripts/odcs.py check`; expect exit 0.
-- [ ] Run the `R-02` acceptance check: `sum(trip_count)` = 9,604,511 and `round(sum(total_revenue), 2)` = 263,480,834.99, recomputed from `fct_trip` joined twice to `dim_zone` in the sandbox.
-- [ ] Run the `R-05` acceptance check: recompute each origin-month's share from `fct_trip` independently and match every row at 1e-9.
-- [ ] Commit and push the contract, SQL, YAML, unit test, five singular tests and `test-map.json`.
+- [x] Author `contracts/agg/agg_borough_flow_monthly.odcs.yaml` through `data-contract`: `status: proposed`, version 1.0.0, grain statement `one row per pickup month, origin borough and destination borough`, properties `month_start_date` (date), `origin_borough` (string, required), `dest_borough` (string, required), `origin_is_unresolved_borough` (boolean), `dest_is_unresolved_borough` (boolean), `is_intra_borough` (boolean), `trip_count` (integer, required), `total_revenue` (number), `origin_trip_count` (integer, required), `origin_cross_borough_trip_count` (integer, required), `cross_borough_trip_share` (number, required), `primaryKey` on the three grain columns.
+- [x] Author `transformation/models/marts/agg/agg_borough_flow_monthly.sql`: `fct_trip` joined to `dim_zone` as origin (`pickup_zone_key`) and as destination (`dropoff_zone_key`), `where in_report_window(f.pickup_datetime) and f.is_billable`, grouped by month and the two borough names; the two flags from `dim_zone.is_unresolved_zone`, `is_intra_borough` from the two borough names, and the origin-month window sums for `origin_trip_count`, `origin_cross_borough_trip_count` and `cross_borough_trip_share` (`safe_divide`); every column cast to its declared type. No `contract: {enforced: true}` in this task: `generate` writes it in Task 2.
+- [x] Add the model entry to `transformation/models/marts/agg/_agg.yml` with a description stating grain, population (billable, in window, both zones resolved), the absence of a floor (ADR 0018) and the share's denominator, and a description on every column.
+- [x] Add `transformation/models/marts/agg/_unit_tests.yml` with unit test `agg_borough_flow_monthly` over `fct_trip` and `dim_zone` fixtures (with `overrides: {vars: {report_start: '2024-01-01', report_end: '2024-04-01'}}`): a cross-borough pair, an intra-borough pair, an `Unknown` origin, a `N/A` destination and a pickup on the first and last day of a month, asserting each row's counts, flags and share.
+- [x] Add `transformation/tests/assert_borough_flow_one_row_per_grain.sql`.
+- [x] Add `transformation/tests/assert_borough_flow_publishes_every_pair.sql`: a full outer join between the table's (month, origin, destination) cells and the star's, reporting a missing pair, an extra pair or a row with `trip_count < 1`.
+- [x] Add `transformation/tests/assert_borough_flow_share_holds.sql`: recompute the share from the table's own `origin_cross_borough_trip_count` and `origin_trip_count`, reporting a mismatch beyond 1e-9 and any origin-month whose rows disagree on the share.
+- [x] Add `transformation/tests/assert_borough_flow_flags_unresolved_boroughs.sql`: report a row whose `origin_is_unresolved_borough` or `dest_is_unresolved_borough` disagrees with the borough name being `Unknown` or `N/A`.
+- [x] Add `transformation/tests/assert_borough_flow_covers_every_trip.sql`: report a difference between the table's summed `trip_count` and the star's billable in-window trips with both zones resolved.
+- [x] Add the five new singular tests to the `agg` `data` list in `test-map.json`.
+- [x] Run `cd transformation && dbt deps`; expect exit 0.
+- [x] Run `cd transformation && dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'`; expect PASS.
+- [x] Run `cd transformation && dbt test --select agg_borough_flow_monthly,test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'`; expect PASS.
+- [x] Run `python3 .agents/skills/data-contract/scripts/odcs.py check`; expect exit 0.
+- [x] Run the `R-02` acceptance check: `sum(trip_count)` = 9,604,511 and `round(sum(total_revenue), 2)` = 263,480,834.99, recomputed from `fct_trip` joined twice to `dim_zone` in the sandbox.
+- [x] Run the `R-05` acceptance check: recompute each origin-month's share from `fct_trip` independently and match every row at 1e-9.
+- [x] Commit and push the contract, SQL, YAML, unit test, five singular tests and `test-map.json`.
 
 ### Task 2: Ossie dataset, source and metric; contract activation; ontology gates
 
@@ -66,3 +66,38 @@
 - [ ] Commit and push the Ossie document, regenerated tests, activated contract, generated dbt keys and `_agg.yml`.
 
 ## Execution evidence
+
+### Task 1 — contract (proposed), model and tests
+
+**Profiling.** `core.fct_trip` and `core.dim_zone` were both profiled in the Verification's `## Discovery` on the `domain` target (borough totals, the eight borough values, month completeness, null zone keys and totals, borough-pair cells, share per origin-month), verdict `Ready`; no new probe was needed and nothing here is unprofiled.
+
+**Artifacts.** `contracts/agg/agg_borough_flow_monthly.odcs.yaml` (sha256 `ab5032b2a2cf`, `status: proposed`, version 1.0.0), `transformation/models/marts/agg/agg_borough_flow_monthly.sql` (`5cf48ae4362d`), its `_agg.yml` entry, `transformation/models/marts/agg/_unit_tests.yml` (`9e2114309069`), `transformation/tests/assert_borough_flow_one_row_per_grain.sql` (`71c03a2eaff7`), `assert_borough_flow_publishes_every_pair.sql` (`e723f6244e07`), `assert_borough_flow_share_holds.sql` (`a6c76bd74d3f`), `assert_borough_flow_flags_unresolved_boroughs.sql` (`22a98f1f202f`), `assert_borough_flow_covers_every_trip.sql` (`79339ad551f4`), and the five entries added to `test-map.json`.
+
+**Gate commands.**
+
+| Command | Exit | Result |
+| --- | --- | --- |
+| `python3 .agents/skills/data-contract/scripts/odcs.py check` | 0 | Three pre-existing `boundary/excluded` info findings; the proposed contract is shape-checked with the orphan and no-document checks skipped, as the skill states. |
+| `cd transformation && dbt deps` | 0 | `dbt_project_evaluator` 1.4.1 installed. |
+| `cd transformation && dbt compile --select agg_borough_flow_monthly --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` | 0 | Resolves `agg.agg_borough_flow_monthly`, table, 11 columns. |
+| `cd transformation && dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` | 0 | `PASS=6 WARN=0 ERROR=0 SKIP=0`, a table model and its five singular tests; 1.52s. |
+| `python /data/default-plugins/vibedata-data-engineering/0.148.28/scripts/assert_dbt_destination.py` | 0 | `DESTINATION_OK: 1 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-7f7e6d1e`. |
+| `python /data/default-plugins/vibedata-data-engineering/0.148.28/scripts/ephemeral_workspace_marker.py init` | 0 | `{"status": "created"}` — the marker is written. |
+| `cd transformation && dbt test --select agg_borough_flow_monthly,test_type:unit --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` | 0 | `PASS=1` — `borough_flow_counts_share_and_flags`. |
+| `sqlfluff lint transformation/models/marts/agg/agg_borough_flow_monthly.sql transformation/tests/assert_borough_flow_*.sql` | 0 | Clean after one layout fix in the full outer join. |
+| `python3 -m pytest tests/test_maps.py tests/test_adr_links.py -q` | 0 | 32 passed. |
+| `python3 -m pytest tests/test_odcs_contracts.py -q` | 0 | 7 passed. |
+| `cd transformation && dbt docs generate --static --target dev` | 0 | `target/static_index.html` copied onto `/data/ephm_dbt_docs/static_index.html`. |
+
+**Defer:** none — this Domain publishes no production manifest and the dbt card forbids `--defer`.
+
+**Acceptance checks (target `ephemeral`, `agg.agg_borough_flow_monthly`).**
+
+- `R-01`, `R-03`, `R-06`, `R-07` — `select count(*) as cells, sum(trip_count) as trips, round(sum(total_revenue), 2) as revenue, count(distinct month_start_date) as months, min(trip_count) as min_trips, count(*) filter (where trip_count < 25) as cells_under_25, count(*) filter (where trip_count < 1) as zero_rows from agg.agg_borough_flow_monthly` returned `cells 180, trips 9604511, revenue 263480834.99, months 3, min_trips 1, cells_under_25 49, zero_rows 0` — the grain has one row per cell, no cell is missing or zero, 49 cells sit under the zone floor and are published anyway, and the three months are the only group.
+- `R-02` — the same query: `9,604,511` billable trips and `263,480,834.99` revenue, equal to the star's billable in-window population at the cent.
+- `R-04` — `select origin_borough, origin_is_unresolved_borough, sum(trip_count) as trips … group by 1, 2` returned eight boroughs with only `Unknown` (31,551 trips, `true`) and `N/A` (5,006 trips, `true`) flagged; the origin totals sum to 9,604,511.
+- `R-05` — each origin-month's share recomputed from `core.fct_trip` joined twice to `core.dim_zone` and compared with the published rows: `published_rows 180, origin_months 24, share_mismatches 0, count_mismatches 0, cross_mismatches 0` at 1e-9.
+- `R-07` — the unit test's fixture trips on `2024-01-31 23:59` and `2024-02-01 00:00` land in January and February, and the trips at `2024-04-01 00:00:00` and `2023-12-31 23:59` are excluded.
+
+**Coverage gap:** none known. The contract is `proposed`, so `generate` wrote no dbt enforcement keys yet by design; Task 2 activates it.
+
