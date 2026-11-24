@@ -1,6 +1,7 @@
 ---
-status: decided
+status: rejected
 date: 2026-10-14
+rejected-note: Superseded by docs/adr/0018-billable-verdict-applied-where-the-daily-zone-figures-are-built.md
 ---
 
 # A billable trip is one with a positive total, applied where revenue and flows are reported

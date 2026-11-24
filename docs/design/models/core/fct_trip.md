@@ -19,6 +19,7 @@ One row per distinct TLC trip, keyed by `trip_key`. Every conformed trip is reta
 - `D-05` `measurable_tip_rate` is null where the payment method does not record tips ([ADR 0011](../../../adr/0011-tips-are-measured-only-where-the-meter-records-them.md)). Source: [ADR 0011](../../../adr/0011-tips-are-measured-only-where-the-meter-records-them.md).
 - `D-06` `is_billable` looks only at the total amount; no payment method is excluded by it, and each metric decides ([ADR 0013](../../../adr/0013-no-charge-and-dispute-payments-are-not-excluded-by-the-billable-rule.md)). Source: [ADR 0013](../../../adr/0013-no-charge-and-dispute-payments-are-not-excluded-by-the-billable-rule.md).
 - `D-07` `trip_key` is the key produced by `int_trips_conformed` ([ADR 0007](../../../adr/0007-trip-key-has-one-definition.md)). Source: docs/requirement/2026-08-29-the-trip-fact.md R-06, [ADR 0007](../../../adr/0007-trip-key-has-one-definition.md).
+- `D-08` The fact still keeps every trip and exposes `is_billable`; the verdict's placement moved only for the daily zone pair, which applies it in `int_trip_zone_daily` above this model ([ADR 0018](../../../adr/0018-billable-verdict-applied-where-the-daily-zone-figures-are-built.md)). Nothing in this model changes. Source: [ADR 0018](../../../adr/0018-billable-verdict-applied-where-the-daily-zone-figures-are-built.md).
 
 ## Rejected
 

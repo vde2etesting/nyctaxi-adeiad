@@ -3,8 +3,9 @@ version: 2
 models:
   - name: mart_daily_zone_revenue
     description: >
-      Daily revenue by pickup zone. The billable rule (ADR 0003) is applied
-      here and nowhere upstream.
+      Daily revenue by pickup zone. The billable rule (ADR 0018) is applied in
+      int_trip_zone_daily, above both daily zone reports, so the rows this
+      excludes stay visible there.
     contract: {enforced: true}
     columns:
       - name: trip_date
