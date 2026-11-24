@@ -62,6 +62,10 @@ The dbt commands ran in `transformation/` with `--target dev` through the runtim
 | SQL lint | `sqlfluff lint transformation/models` | 0 | pass — `All Finished!` |
 | ADR lint | `python3 .github/scripts/adr_lint.py` | 0 | pass — `ADR numbering check passed` |
 | Ossie lint | `python3 tools/ossie_lint.py` | 0 | pass — `0 blocking finding(s)` |
+| Ship currency | `python3 "$SKILL_DIR/../../scripts/ship_currency.py" --rows .agents_tmp/ship-currency-rows.json` against the resolved target `origin/main` = `1184020` | 0 | pass — `{"fresh": true, "stale": [], "exempt_commits": []}`: no Coverage row went stale on the target side or on this branch |
+| Contract promotion | `diff_manifest_contract.py --materialize 1184020 transformation /tmp/base_manifest.json --deps`, then `diff_manifest_contract.py /tmp/base_manifest.json transformation/target/manifest.json` | 0 | pass — `weaker: []`, one `stronger` entry, "new enforced contract on model model.nyc_taxi_analytics.agg_borough_flow_monthly"; nothing to promote, no contract-`not_null` column carries a duplicate `not_null` test, and `access:` is unset on this model as on every other model in the project (dbt's default `protected`), so no public model is involved — a repo-wide convention gap, reported and not fixed here |
+| Model build at ship | `dbt build --select agg_borough_flow_monthly --target dev` | 0 | pass — `PASS=16 WARN=1 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=17`; the warning is the known `assert_semantic_levels_hold` sentinel row, unchanged by this intent |
+| Sandbox destination at ship | `python3 "$SKILL_DIR/../../scripts/assert_dbt_destination.py"` | 0 | pass — `DESTINATION_OK: 1 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-7f7e6d1e` |
 
 ## Discovery
 
