@@ -1,5 +1,68 @@
 # Verification: Borough-to-borough trip flows Q1 2024
 
+## Verification
+
+`verdict: verified` at `f06bf3e`: the aggregate publishes 180 Q1 borough-pair-month rows with no duplicate grain, `sum(trip_count)` 9,604,511 and `sum(total_revenue)` 263,480,834.99 both recomputed independently from `core.fct_trip` and `core.dim_zone` on the same population, the share and its two additive origin measures agree row for row, the unresolved boroughs are present and flagged, everything the contract and the Ossie documents promise is present, and every gate the transformation, semantic-model, ontology and data-contract playbooks name passed for this relation.
+
+**Limits.** The full-project `dbt build` could not finish in this sandbox: DuckDB ran out of memory (3.1 GiB) on `int_shift_economics` and `core.fct_trip`, an environment capacity failure, not a logic defect, and outside this intent's rows. The gates below ran on the playbook's selection (`agg_borough_flow_monthly+`, whose upstream the platform card says the sandbox already holds) built at this commit, plus `dim_date`, `dim_driver`, `dim_vehicle` and `fct_maintenance` rebuilt at this commit to clear stale date types. `core.fct_trip` in the sandbox is the build from this session's earlier run, and rebuilding it exceeds the sandbox's memory: the aggregate's figures therefore rest on that table, which the independent recomputation reads as well, so a change `core.fct_trip` would take from the branch's DATE changes cannot be seen here — its values are counts and `total_amount` sums, which those changes do not touch.
+
+## Coverage
+
+| Item | Evidence | Result | At |
+| --- | --- | --- | --- |
+| `R-01` one row per (pickup month, origin borough, destination borough), row count equal to the source's groups | `assert_borough_flow_one_row_per_grain` (error severity) in `dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit`; independently, `count(*)` of the published relation against a `date_trunc('month', pickup_date)` group-by of `core.fct_trip` joined to `core.dim_zone` twice, billable, windowed, plus a duplicate count over the three columns | test passed (`PASS=15 WARN=1 ERROR=0 SKIP=0`); `exp_pairs 180`, `pub_pairs 180`, `dup_groups 0` | `f06bf3e` |
+| `R-02` billable trips and their revenue per pair | independent recomputation `sum(c)` and `round(sum(total_amount),2)` from `fct_trip`+`dim_zone` against the relation's own sums | `pub_trips 9604511` = `exp_trips 9604511`; `pub_revenue 263480834.99` = `exp_revenue 263480834.99` | `f06bf3e` |
+| `R-03` no trip-count floor | `min(trip_count)` on the relation; every source group present in the relation (`except` both ways on the five measure columns) | `min_trips 1`; `missing_in_pub 0`, `extra_in_pub 0` | `f06bf3e` |
+| `R-04` `Unknown` and `N/A` present as origins and destinations, flagged | relation rows joined to the source's own `dim_zone.is_unresolved_zone` per side, counted by mismatch; rows per side; `sum(trip_count)` where the origin is unresolved | `origin_flag_mismatch 0`, `dest_flag_mismatch 0`; `origin_unresolved_rows 47`, `dest_unresolved_rows 48`; `unresolved_origin_trips 36557` | `f06bf3e` |
+| `R-05` the origin borough's cross-borough share on every row of the origin-month | independent `sum(c)` and `sum(case when db <> ob then c else 0 end)` per (month, origin) against the relation's `origin_trip_count`, `origin_cross_borough_trip_count` and `cross_borough_trip_share` | `origin_total_mismatch 0`, `origin_cross_mismatch 0`, `max_share_abs_diff 0.0`; `origin_month_groups 24` | `f06bf3e` |
+| `R-06` empty pairs omitted, no zero row | published cell count against the 192 the 8 borough values and 3 months allow; `min(trip_count)`; rows with `trip_count <= 0` | `pub_pairs 180 < 192`; `min_trips 1`; `nonpositive_trip_rows 0` | `f06bf3e` |
+| `R-07` pickup month, billable only, window edges | per-month totals of the relation against the source's monthly counts; boundary-day trips; rows with `total_revenue <= 0`; billable trips with `total_amount <= 0` | `month_total_mismatch 0`; `billable_on_boundary_days 642223` folded into their months; `nonpositive_revenue_rows 0`; `billable_nonpositive_trips 0` | `f06bf3e` |
+| `R-08` contract, logical source, ontology where a concept is reached, design record, description stating grain and population | `odcs.py check`, `diff origin/main`, `check --relations`, `profile`; `ossie.py validate`/`coverage`/`suppliers`/`notes`/`columns`/`bindings`/`generate-tests --check`; `validate ontology`/`refs`/`glossary`; `ossie_lint`; the contract's `dataGranularityDescription` and the model's description | see `## Gate results`; no finding against this relation's rows; ontology reaches no concept, which the design record states | `f06bf3e` |
+| `agg_borough_flow_monthly` (model, `_agg.yml`, `_unit_tests.yml`, five singular tests) | `dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev` then `dbt test --select agg_borough_flow_monthly,test_type:unit --target dev`, each followed by `assert_dbt_destination.py` | build `0`, `PASS=15 WARN=1 ERROR=0 SKIP=0`; unit `0`, `PASS=1`; destination `0`, `DESTINATION_OK: 1 built relation(s)` | `f06bf3e` |
+| `contracts/agg/agg_borough_flow_monthly.odcs.yaml` | `odcs.py check`, `odcs.py diff origin/main`, `odcs.py check --relations`, `odcs.py profile` against the sandbox | `0`, `0`, `1` (one pre-existing error on `ops_raw.audit_runs`, outside this relation), `0` | `f06bf3e` |
+| `logical-model/nyc_taxi_analytics.ossie.yaml`: `trips.LTS10_borough_month_flow` | `validate`, `coverage` with the three declared exclusions, `suppliers`, `notes`, `generate-tests --check`, `columns`, `bindings` | `0`, `0` (`35 model(s) on disk, 32 named, 0 coverage error(s)`), `0`, `0`, `0` (`3 generated test(s), 0 stale`), `0`, `0` | `f06bf3e` |
+| `ontology/nyc_taxi_analytics.mapping.yaml` | `validate ontology`, `refs`, `glossary` | `0`, `0`, `0` | `f06bf3e` |
+
+## Gate results
+
+The dbt commands ran in `transformation/` with `--target dev` through the runtime's context wrapper; `SKILL_DIR` is the plugin's skill directory.
+
+| Gate | Command | Exit | Outcome |
+| --- | --- | --- | --- |
+| Data tests on the selection | `dbt build --select agg_borough_flow_monthly+ --exclude test_type:unit --target dev` | 0 | pass — `PASS=15 WARN=1 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=16`; the warning is the known `assert_semantic_levels_hold` row for the `LTS5` unresolved sentinel, unchanged by this intent |
+| Unit tests on the selection | `dbt test --select agg_borough_flow_monthly,test_type:unit --target dev` | 0 | pass — `PASS=1 WARN=0 ERROR=0` |
+| Sandbox destination | `python3 "$SKILL_DIR/../../scripts/assert_dbt_destination.py"` | 0 | pass — `DESTINATION_OK: 1 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-7f7e6d1e`, after each writing dbt command |
+| Acceptance checks `R-01`–`R-07` | independent recomputation over `core.fct_trip` + `core.dim_zone` on the ephemeral target (values in `## Coverage`) | 0 | pass — 180=180 pairs, 0 duplicates, 9,604,511 trips and 263,480,834.99 revenue on both sides, min 1, 0 share or flag mismatches |
+| Docs match data | `select month_start_date, origin_borough, round(max(cross_borough_trip_share)*100,1) ...` and the counts behind every figure the contract, design record and model description state | 0 | pass — Manhattan 5.8/5.9/6.0%, Queens 73.1/73.9/74.5%, Staten Island 44.6/44.6/70.9% match the recorded figures; 180 cells, 9,604,511 trips, 263,480,834.99 revenue, 49 cells under 25, min 1, 24 origin-months, 36,557 unresolved-origin trips all match |
+| Refactor equivalence | `-` | - | not applicable — no existing model, column or test was restructured; the change is additive |
+| Project audit | `dbt build --select package:dbt_project_evaluator --vars '{dbt_project_evaluator_enabled: true}' --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` | 0 | pass — 78 nodes, `PASS=66 WARN=12 ERROR=0`; no error-severity finding. The `is_empty_fct_missing_primary_key_tests_` warning does list `agg_borough_flow_monthly` beside 20 existing models, because the evaluator looks for a column-level `unique` test and this repo states grain uniqueness in singular tests; `assert_borough_flow_one_row_per_grain` is the error-level gate, so this row is a finding, not a weakening |
+| Logical Model contract | design record's `## Logical Model` block read against `logical-model/` and `ontology/` | 0 | pass after the approved amendment `7b9b784` — the block names the handle the document carries, `LTS10_borough_month_flow` (it read `borough_flows`, which nothing names); no dataset and no metric added or changed, no concept reached |
+| Dev-artifact scan | `git diff 1184020..HEAD` on the model, contract, tests, Ossie document and project files | 0 | pass — no `dev_mode`, no hard-coded `.add_limit()`, no environment id, `transformation/profiles.yml` untouched |
+| Baseline cross-check | `-` | - | not applicable — the platform card's `## Defer` says no production manifest is published for this Domain |
+| Governance policy | `-` | - | not applicable — DuckDB has no row filters, masks or access policies, as `_shared/platforms/duckdb_local/dbt.md` states |
+| Semantic model validate | `python3 .agents/skills/semantic-model/scripts/ossie.py validate logical-model` | 0 | pass — `2 file(s), 0 error(s), 1 warning(s)`; the warning is the pre-existing `zone_poi_to_zone` relationship note |
+| Semantic coverage | `... ossie.py coverage logical-model transformation/models/marts --exclude agg.agg_od_flow_matrix --exclude finance.mart_revenue_component_bridge --exclude core.dim_fare_regime` | 0 | pass — `35 model(s) on disk, 32 named, 0 coverage error(s)`, three `coverage/excluded` infos for the repo map's declared exclusions |
+| Semantic suppliers | `... ossie.py suppliers logical-model` | 0 | pass — `0 unsupplied item(s)` |
+| Semantic notes | `... ossie.py notes logical-model transformation/tests docs/adr` | 0 | pass — `0 dangling pointer(s), 0 unchecked director(ies)` |
+| Semantic columns | `... ossie.py columns logical-model transformation/target/catalog.json` | 0 | pass — `88 relation(s) in the catalog, 0 error(s), 15 warning(s)`, none on `LTS10_borough_month_flow` |
+| Semantic bindings | `dbt compile --select agg_borough_flow_monthly --target dev` then `... ossie.py bindings logical-model transformation/target/manifest.json` | 0 | pass — `33 model(s) with SQL, 0 error(s), 15 warning(s)`; the `bindings/unproven` warning this source carried before the compile is gone |
+| Generated semantic tests | `... ossie.py generate-tests logical-model transformation/tests --check` | 0 | pass — `3 generated test(s), 0 stale` |
+| Ontology validate | `... ossie.py validate ontology` | 0 | pass — `3 file(s), 0 error(s), 0 warning(s)` |
+| Ontology refs | `... ossie.py refs ontology logical-model` | 0 | pass — `2 mapping(s), 0 error(s), 2 warning(s)`, both pre-existing |
+| Ontology glossary | `... ossie.py glossary ontology CONTEXT.md` | 0 | pass — `0 entity type(s) without a term` |
+| Contract check | `python3 .agents/skills/data-contract/scripts/odcs.py check` | 0 | pass — 34 items: 31 `contract/active-unbuilt` warnings (other relations absent from the last narrow dbt selection) and 3 `boundary/excluded` infos; none on this contract |
+| Contract diff | `... odcs.py diff origin/main` | 0 | pass — `[]`, the new contract's version needs no further move |
+| Contract relations | `... odcs.py check --relations --catalog "$VD_EPHM_DUCKDB_LOCAL_PATH"` | 1 | finding, outside the impacted set — the only error is `ops_raw.audit_runs: the built relation carries error_message and the contract does not declare it`; `agg.agg_borough_flow_monthly` has none. The same command at `1184020` in a throwaway worktree returns the same single error, so it is pre-existing |
+| Contract profile | `... odcs.py profile --catalog "$VD_EPHM_DUCKDB_LOCAL_PATH"` | 0 | pass — 24 `profile/unchecked` warnings for relationships whose target contract carries no schema, identical at `1184020`, none for this contract; for this relation the key does not repeat, no `required` property is null and no `invalidValues` set is violated |
+| Weakening: test declarations | `git show 1184020:transformation/models/marts/agg/_agg.yml > .base_agg.yml` then `python3 "$SKILL_DIR/../../scripts/diff_data_tests.py" /workspace/.base_agg.yml transformation/models/marts/agg/_agg.yml` | 0 | pass — `{"weaker": [], "stronger": [], "ambiguous": []}`; the file gains one entry and rewrites no existing one |
+| Weakening: generated singular tests | `git diff 1184020..HEAD` read on `assert_semantic_content_holds.sql` and `assert_semantic_levels_hold.sql` | 0 | pass — additions and CTE renumbering only: 27→29 CTEs, 45→47 full joins, no assertion arm removed; the level test gains 39 lines and loses none |
+| Weakening: dbt contracts | `git diff 1184020..HEAD -- transformation/models/marts/agg/_agg.yml` | 0 | pass — the only contract change is the new model's own `contract: {enforced: true}`, no existing relation's contract touched |
+| Python tests | `python3 -m pytest tests -q` | 0 | pass — `222 passed in 60.57s` |
+| Python lint | `ruff check .` | 0 | pass — `All checks passed!` |
+| SQL lint | `sqlfluff lint transformation/models` | 0 | pass — `All Finished!` |
+| ADR lint | `python3 .github/scripts/adr_lint.py` | 0 | pass — `ADR numbering check passed` |
+| Ossie lint | `python3 tools/ossie_lint.py` | 0 | pass — `0 blocking finding(s)` |
+
 ## Discovery
 
 Read from the `domain` target, 2026-11-24, before design.
