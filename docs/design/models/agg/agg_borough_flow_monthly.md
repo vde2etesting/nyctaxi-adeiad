@@ -28,6 +28,7 @@ One row per (pickup month, origin borough, destination borough) that carried at 
 - `D-10` Materialised as a table, like the rest of the `agg` folder, with an enforced contract. Source: `dbt_project.yml`, sibling aggregate models.
 - `D-11` The relation is an aggregate logical source of the trips star, not a new star and not a `semantic_exclusions` entry: it is the star's rows rolled up and it carries no group-level cut. The share is published as its own metric. Source: R-08, `semantic-model` routing.
 - `D-12` The contract is a new ODCS file for the relation, `status: proposed` until the relation ships. Source: R-08, `repo-map.json` `artifact_paths.data_contract`.
+- `D-13` Supersedes the share metric in `D-11` and the dataset and metric lines of `## Logical Model`: the relation is the trips star's tenth logical source (`trips.LTS10_borough_month_flow`), adding no dataset of its own and no metric, and it supplies `billable_trip_count` and `billable_revenue` only. `cross_borough_trip_share` and the two counts under it stay published columns of the table and are refused in that source's `note`. A metric cannot carry them: `origin_trip_count` and `origin_cross_borough_trip_count` are the origin borough's month totals repeated on every destination row, so a `SUM` over the source's rows multiplies them by the destination boroughs that month has, the pinned-level form that would fix a measure's grain is not compiled by the Domain's compiler yet, and the fact cannot rebuild them either, because it carries two zone keys and two zones of one borough are not two boroughs — which is also why the detail source cannot supply them, and `generate-tests` requires every metric of the star to be supplied there. `R-05` is met by the column, and a metric publishing a fan-out would be worse than no metric. The measurements behind this sit in the Verification's `## Discovery`. Source: R-08, `semantic-model` routing, `generate-tests` refusal.
 
 ## Rejected
 
@@ -35,6 +36,7 @@ One row per (pickup month, origin borough, destination borough) that carried at 
 - A separate origin-borough relation for the share — the user chose one row set.
 - Zero-filling the 64-cell grid — the user chose to omit absent pairs.
 - Filtering `Unknown` and `N/A` out of the matrix — the user chose to keep and flag them ([ADR 0012](../../../adr/0012-unresolved-zones-are-retained-and-flagged.md)).
+- Publishing the cross-borough share as a semantic-layer metric bound to the aggregate — a `SUM` of a repeated origin-month total fans out by destination borough, the detail source cannot rebuild it from two zone keys, and the compiler does not compile the pinned-level form that would carry it (`D-13`).
 
 ## Consumers
 
@@ -46,11 +48,11 @@ None in this repo yet. Intended for reports and ad-hoc analysis of traffic betwe
 documents:
   - logical-model/nyc_taxi_analytics.ossie.yaml
     datasets:
-      added: [borough_flows]
+      added: []
       changed: []
       retired: []
     metrics:
-      added: [cross_borough_trip_share]
+      added: []
       changed: []
       retired: []
     logical_sources:
@@ -70,3 +72,4 @@ ontology:
 ## History
 
 - 2026-11-24 — borough-flow — design record written — D-01 to D-12 — terms: added Cross-borough trip share
+- 2026-11-24 — borough-flow — amended during execution: the share is refused as a semantic-layer metric and the relation supplies the two additive measures only, correcting the `## Logical Model` dataset and metric lines — D-13 — terms: none new
