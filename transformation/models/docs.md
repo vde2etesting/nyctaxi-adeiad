@@ -55,3 +55,16 @@ This is a property of the business, not missing data. `is_fleet_attributed`
 states it explicitly so that no consumer has to infer it from a null, and so
 that a fleet-level denominator is never taken over the whole fact.
 {% enddocs %}
+
+{% docs borough_flow_trip_count %}
+Billable trips from the row's origin borough to its destination borough in the
+month: the star filtered to `is_billable`, both zone keys resolved and the pickup
+inside the reporting window, then counted.
+
+The name `trip_count` on this table therefore counts a different population from
+`trip_count` on the zone-level aggregates, which counts every trip. The semantic
+layer binds this column as `billable_trip_count` for that reason (ADR 0003). There
+is no minimum trip count: a borough pair carrying a single billable trip is
+published as readily as one carrying thousands, because a floor at borough level
+would hide whole boroughs (ADR 0018).
+{% enddocs %}
