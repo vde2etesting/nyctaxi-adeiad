@@ -61,12 +61,25 @@
 
 **Requirements:** `R-01`, `R-03`, `R-06` · **Design:** `docs/design/models/agg/agg_trip_zone_daily.md` · **Skill:** `generating-dbt-model` · **Depends on:** Task 1
 
-- [ ] Rewrite `transformation/models/marts/agg/agg_trip_zone_daily.sql` to select `pickup_date_key`, `pickup_date`, `z.zone_natural_key as pickup_location_id`, `z.zone_name`, `z.borough_name` and the four all-trip measures from `int_trip_zone_daily`, joined to `dim_zone`, with the five window functions unchanged; no `ref('fct_trip')` remains.
-- [ ] Run `cd transformation && dbt build --select agg_trip_zone_daily`; expect the model, its enforced contract and its data tests to pass.
-- [ ] Run the `R-03` acceptance on `target: "ephemeral"`: `select sum(trip_count) as trips, round(sum(total_revenue), 2) as revenue from agg.agg_trip_zone_daily where pickup_date between date '2024-01-01' and date '2024-03-31'`; expect `9722336` and `260487920.62`, and the same query with `and zone_name = 'JFK Airport'` expects `429806` and `33140983.67`.
-- [ ] Run the row-for-row comparison: the count of rows in `agg.agg_trip_zone_daily` on `target: "ephemeral"` whose full column set (money rounded to the cent) has no match in `agg.agg_trip_zone_daily` on `target: "domain"`, plus the reverse, both expect `0`.
-- [ ] Run the `R-06` check: `cd transformation && dbt compile --select agg_trip_zone_daily` then `grep -c fct_trip target/compiled/nyc_taxi_analytics/models/marts/agg/agg_trip_zone_daily.sql`; expect `0`.
-- [ ] Commit and push `transformation/models/marts/agg/agg_trip_zone_daily.sql`.
+- [x] Rewrite `transformation/models/marts/agg/agg_trip_zone_daily.sql` to select `pickup_date_key`, `pickup_date`, `z.zone_natural_key as pickup_location_id`, `z.zone_name`, `z.borough_name` and the four all-trip measures from `int_trip_zone_daily`, joined to `dim_zone`, with the five window functions unchanged; no `ref('fct_trip')` remains.
+- [x] Rank `revenue_rank_that_day` on `round(d.total_revenue, 2)` instead of the raw double, per the user's answer at task 2: rows equal at the cent tie rather than being split by float summation order.
+- [x] Run `cd transformation && dbt build --select agg_trip_zone_daily`; expect the model, its enforced contract and its data tests to pass.
+- [x] Run the `R-03` acceptance on `target: "ephemeral"`: `select sum(trip_count) as trips, round(sum(total_revenue), 2) as revenue from agg.agg_trip_zone_daily where pickup_date between date '2024-01-01' and date '2024-03-31'`; expect `9722336` and `260487920.62`, and the same query with `and zone_name = 'JFK Airport'` expects `429806` and `33140983.67`.
+- [x] Run the row-for-row comparison: the count of rows in `agg.agg_trip_zone_daily` on `target: "ephemeral"` whose full column set (money rounded to the cent, miles and averages to 1e-6) has no match in `agg.agg_trip_zone_daily` on `target: "domain"`, plus the reverse, expect `0` unmatched keys and `0` rows differing in any measure; `revenue_rank_that_day` is compared separately, and the user accepted the `2` cells the cent-based ranking changes.
+- [x] Run the `R-06` check: `cd transformation && dbt compile --select agg_trip_zone_daily` then `grep -Ec 'from [^ ]*fct_trip' target/compiled/nyc_taxi_analytics/models/marts/agg/agg_trip_zone_daily.sql`; expect `0`, and `grep -c int_trip_zone_daily` on the same file expects `1` or more.
+- [x] Commit and push `transformation/models/marts/agg/agg_trip_zone_daily.sql`.
+
+## Execution evidence (Task 2)
+
+- Task 2: `dbt compile --select agg_trip_zone_daily --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` — exit 0 — resolved `agg.agg_trip_zone_daily` from `intermediate.int_trip_zone_daily`; no defer.
+- Task 2: `dbt build --select agg_trip_zone_daily --target dev --warn-error-options '{"error":["NoNodesForSelectionCriteria"]}'` — exit 0 (`Completed successfully` first run; second run with the cent-based rank `PASS=2 WARN=1 ERROR=0`) — model and enforced contract OK — `transformation/models/marts/agg/agg_trip_zone_daily.sql` — sha256:921d325f52166831429fa55e19dbc0330069b07ad822acf635e67c7847f50981
+- Task 2: `python /data/default-plugins/vibedata-data-engineering/0.148.28/scripts/assert_dbt_destination.py` — exit 0 — `DESTINATION_OK: 1 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-290100c7`
+- Task 2: the one warning is `assert_semantic_levels_hold`, finding `trips.LTS5_weather_borough_daily: trips_to_pickup_zone borough key is no member` / `unresolved` — pre-existing at the baseline, not this change: `target: "domain"` returns `agg.agg_weather_demand_daily` 91 rows with `borough_name = 'unresolved'` against `core.dim_zone` 0 such members. Recorded as a finding; not investigated here.
+- Task 2: `lakehouse_query target=ephemeral: select sum(trip_count), round(sum(total_revenue),2) from agg.agg_trip_zone_daily where pickup_date between '2024-01-01' and '2024-03-31'` — `9722336` trips / `260487920.62`; with `and zone_name = 'JFK Airport'` — `429806` / `33140983.67` — `R-03` values reproduced exactly.
+- Task 2: row-for-row comparison, `export_query_data` both targets then full outer join on `(pickup_date, pickup_location_id)` with money at the cent and miles/averages at 1e-6 — `20771` joined rows, `keys_unmatched=0`, `rows_differing_except_rank=0`, `rank_deltas=2`.
+- Task 2: the two rank cells are 2024-03-05 Middle Village and Williamsbridge/Olinville, both 267.92 revenue: production stores 166 and 167, the cent-based ranking ties them at 166 — the user's answer (`cent_rank`) at the task 2 question. Recomputing the old aggregation inline in the sandbox also ties them, so production's split was float noise.
+- Task 2: `grep -Ec 'from [^ ]*fct_trip' target/compiled/.../agg_trip_zone_daily.sql` — exit 1, count `0`; `grep -c int_trip_zone_daily` — `1` — `R-06` and the `R-01` graph evidence for this report.
+- Task 2: `dbt docs generate --static --target dev` — exit 0 — `static_index.html` published to `/data/ephm_dbt_docs`
 
 ### Task 3: `mart_daily_zone_revenue` reads the shared computation
 
@@ -77,9 +90,9 @@
 - [ ] Run `cd transformation && dbt build --select mart_daily_zone_revenue`; expect the model, its enforced contract and its data tests to pass.
 - [ ] Run the `R-02` acceptance on `target: "ephemeral"`: `select sum(trip_count) as trips, round(sum(total_revenue), 2) as revenue, round(sum(fare_revenue), 2) as fare, round(sum(tip_revenue), 2) as tip, round(sum(surcharge_revenue), 2) as surcharge, round(sum(toll_revenue), 2) as toll from finance.mart_daily_zone_revenue where trip_date between date '2024-01-01' and date '2024-03-31'`; expect `9604511`, `263480834.99`, `180344530.29`, `31635312.62`, `48402767.94`, `5125834.39`, and the same query with `and zone_name = 'JFK Airport'` expects `416460` and `33881378.28`.
 - [ ] Run the row-for-row comparison against `finance.mart_daily_zone_revenue` on `target: "domain"` (money at the cent, every non-money column exactly), both directions; expect `0` unmatched rows each way.
-- [ ] Run the `R-06` check: `cd transformation && dbt compile --select mart_daily_zone_revenue` then `grep -c fct_trip` on both compiled reports; expect `0` each, and `grep -c int_trip_zone_daily` on both compiled reports expects at least `1` each — the `R-01` graph evidence.
+- [ ] Run the `R-06` check: `cd transformation && dbt compile --select mart_daily_zone_revenue` then `grep -Ec 'from [^ ]*fct_trip'` on both compiled reports; expect `0` each, and `grep -c int_trip_zone_daily` on both compiled reports expects at least `1` each — the `R-01` graph evidence.
 - [ ] Run `python3 .agents/skills/data-contract/scripts/odcs.py check`; expect the two contracts unchanged and passing.
 - [ ] Run `cd transformation && dbt test --select path:models/agg path:models/finance --exclude test_type:unit`; expect the generated semantic tests to pass unchanged.
 - [ ] Commit and push `transformation/models/marts/finance/mart_daily_zone_revenue.sql` and `transformation/models/marts/finance/_finance.yml`.
 
-## Execution evidence
+## Execution evidence (Task 3)
