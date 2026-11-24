@@ -57,6 +57,8 @@
 | Ship step: contract build destination | `python .../scripts/assert_dbt_destination.py` | 0 | pass — `DESTINATION_OK: 3 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-290100c7` |
 | Ship step: domain sweep | `grep -nE "^\*\*" CONTEXT.md` against the design records' vocabulary, and `docs/adr/` | 0 | pass — `domain sweep: nothing new`: ADR 0018 already records the decision, and the design introduced no business term; `billable trip`, the only term it touches, is glossed and unchanged by where the verdict is applied |
 
+| Ship step: publication | `gh pr list -R vde2etesting/nyctaxi-adeiad --head intent/new-intent-290100c7 --state open` → `[]`; `gh pr create -R vde2etesting/nyctaxi-adeiad --head intent/new-intent-290100c7 --base main`; `gh pr view 1 -R vde2etesting/nyctaxi-adeiad --json number,url,state,headRefName,baseRefName` | 0 | open — https://github.com/vde2etesting/nyctaxi-adeiad/pull/1, `state: OPEN`, head `intent/new-intent-290100c7`, base `main`. The bare `gh` commands name no default repository in this workspace, so every call passes `-R vde2etesting/nyctaxi-adeiad`, the origin remote this branch pushes to |
+
 ## Findings
 
 - Pre-existing (identical at the merge-base `1184020`, and no file this intent changed is involved): the three stale generated semantic tests; the 15 `columns/datatype-mismatch` warnings; the 9 `relations/mismatch` contract errors on `core.*` and `ops_raw.audit_runs`; the `relationship/to-column-not-a-key` warning on `zone_poi_to_zone`; and `assert_semantic_levels_hold` reporting `agg.agg_weather_demand_daily`'s `borough_name = 'unresolved'` (91 rows) as no Geography member. Each deserves its own change; none returns this intent.
