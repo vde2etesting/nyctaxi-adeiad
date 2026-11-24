@@ -52,6 +52,11 @@
 | Contract profile: finance | `python3 .../odcs.py profile --relation finance.mart_daily_zone_revenue` | 0 | pass with one unjudged claim — `profile/unchecked`: the `pickup_location_id` → `dim_zone.zone_natural_key` relationship is not checked because the contract declares no `dim_zone` schema; the dbt `relationships` test covers the same claim and passed |
 | Contract profile: agg | `python3 .../odcs.py profile --relation agg.agg_trip_zone_daily` | 0 | pass — `[]` |
 
+| Ship step: contract promotion | `python .../shipping/../../scripts/diff_manifest_contract.py .agents_tmp/base-manifest.json transformation/target/manifest.json` (base materialized at the merge-base `1184020` with `--deps`) | 0 | pass — `weaker: []`, one `stronger`: the new enforced contract on `int_trip_zone_daily`; nothing published gets weaker, so no breaking-contract stop |
+| Ship step: contract build | `cd transformation && dbt build --select int_trip_zone_daily agg_trip_zone_daily mart_daily_zone_revenue --target dev` | 0 | pass — `PASS=13 WARN=1 ERROR=0 TOTAL=14`; both enforced contracts hold, no `contract violation` |
+| Ship step: contract build destination | `python .../scripts/assert_dbt_destination.py` | 0 | pass — `DESTINATION_OK: 3 built relation(s) landed in the sandbox ephm_singapore-l1-workshop_new-intent-290100c7` |
+| Ship step: domain sweep | `grep -nE "^\*\*" CONTEXT.md` against the design records' vocabulary, and `docs/adr/` | 0 | pass — `domain sweep: nothing new`: ADR 0018 already records the decision, and the design introduced no business term; `billable trip`, the only term it touches, is glossed and unchanged by where the verdict is applied |
+
 ## Findings
 
 - Pre-existing (identical at the merge-base `1184020`, and no file this intent changed is involved): the three stale generated semantic tests; the 15 `columns/datatype-mismatch` warnings; the 9 `relations/mismatch` contract errors on `core.*` and `ops_raw.audit_runs`; the `relationship/to-column-not-a-key` warning on `zone_poi_to_zone`; and `assert_semantic_levels_hold` reporting `agg.agg_weather_demand_daily`'s `borough_name = 'unresolved'` (91 rows) as no Geography member. Each deserves its own change; none returns this intent.
